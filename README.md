@@ -8,6 +8,13 @@
 
 Agentic blog monitor that surfaces new posts and generates summaries.
 
+> **EXPERIMENTAL TOOL:** tldrop is a personal productivity tool designed to assist — not replace — reading original content. Summaries are AI-generated and may contain inaccuracies. Always verify important information against the source. Provided without warranty or support commitments.
+
+## Documentation
+
+- [Product Requirements](docs/PRD.md) — what tldrop does and why
+- [Technical Specification](docs/TECHNICAL_SPEC.md) — architecture and implementation details
+
 ## Quick Start
 
 ```bash
