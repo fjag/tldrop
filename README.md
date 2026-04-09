@@ -31,14 +31,14 @@ tldrop --topics "SageMaker,Bedrock,Glue"
 ## Usage
 
 ```bash
-# Basic usage
+# Basic usage (defaults to AWS blogs)
 tldrop --topics "SageMaker,Bedrock,Glue"
 
 # Only posts from the last 7 days
 tldrop --topics "SageMaker,Bedrock" --days 7
 
-# Override site and feeds
-tldrop --topics "Bedrock" --site https://aws.amazon.com --feeds /blogs/machine-learning/feed/
+# Point to any blog site with RSS feeds
+tldrop --topics "python" --site https://engineering.example.com --feeds /feed/,/blog/rss/
 
 # Multiple output formats
 tldrop --topics "SageMaker" --format md,html
@@ -46,15 +46,10 @@ tldrop --topics "SageMaker" --format md,html
 # Dry run (preview without LLM calls)
 tldrop --topics "SageMaker" --dry-run
 
-# Git sync
+# Auto-commit and push summaries to your git repo
 tldrop --topics "SageMaker" --git-push
 ```
 
 ## Configuration
 
-Environment variables (or `.env` file):
-
-- `ANTHROPIC_API_KEY` - Required. Your Claude API key.
-- `TLDROP_SITE` - Blog site URL (default: https://aws.amazon.com)
-- `TLDROP_OUTPUT_DIR` - Output directory (default: ./output)
-- `TLDROP_STATE_DIR` - State directory (default: ./state)
+Set `ANTHROPIC_API_KEY` in your environment or in a `.env` file. See [.env.example](.env.example) for all options.
