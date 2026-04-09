@@ -37,8 +37,8 @@ tldrop --topics "SageMaker,Bedrock,Glue"
 # Only posts from the last 7 days
 tldrop --topics "SageMaker,Bedrock" --days 7
 
-# Point to any blog site with RSS feeds
-tldrop --topics "python" --site https://engineering.example.com --feeds /feed/,/blog/rss/
+# Point to any blog site (requires RSS feeds)
+tldrop --topics "python" --site https://engineering.example.com --feeds /feed/
 
 # Multiple output formats
 tldrop --topics "SageMaker" --format md,html
