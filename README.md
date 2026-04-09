@@ -34,6 +34,9 @@ tldrop --topics "SageMaker,Bedrock,Glue"
 # Basic usage
 tldrop --topics "SageMaker,Bedrock,Glue"
 
+# Only posts from the last 7 days
+tldrop --topics "SageMaker,Bedrock" --days 7
+
 # Override site and feeds
 tldrop --topics "Bedrock" --site https://aws.amazon.com --feeds /blogs/machine-learning/feed/
 
