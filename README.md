@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Powered by Claude](https://img.shields.io/badge/Powered%20by-Claude-blueviolet.svg)](https://www.anthropic.com/claude)
 [![CLI](https://img.shields.io/badge/interface-CLI-orange.svg)](#usage)
-[![RSS](https://img.shields.io/badge/data-RSS%20feeds-yellow.svg)](#)
+[![Experimental](https://img.shields.io/badge/status-experimental-red.svg)](#)
 
 Agentic blog monitor that surfaces new posts and generates summaries.
 
