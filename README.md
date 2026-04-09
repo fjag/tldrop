@@ -53,3 +53,24 @@ tldrop --topics "SageMaker" --git-push
 ## Configuration
 
 Set `ANTHROPIC_API_KEY` in your environment or in a `.env` file. See [.env.example](.env.example) for all options.
+
+## Cost & Models
+
+**Default models:**
+- **Summarizer**: Claude Sonnet 4 — quality summaries
+- **Filter**: Claude Haiku 4 — cheap relevance checks
+
+**Estimated cost for 10 typical AWS blog posts:**
+
+| Stage | Tokens | Cost |
+|-------|--------|------|
+| Filter (Haiku) | ~5K input | ~$0.001 |
+| Summarizer (Sonnet) input | ~50K | ~$0.15 |
+| Summarizer (Sonnet) output | ~15K | ~$0.23 |
+| **Total** | | **~$0.38** |
+
+Override models via environment variables:
+```bash
+export TLDROP_SUMMARIZER_MODEL=claude-sonnet-4-20250514
+export TLDROP_FILTER_MODEL=claude-haiku-4-20250514
+```
