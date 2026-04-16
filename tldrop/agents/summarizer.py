@@ -44,13 +44,15 @@ One sentence: How this relates to {topics}.
 
 Keep the summary concise but complete. Use technical terms appropriately."""
 
-FILTER_PROMPT = """Given the following blog post title, categories, and excerpt, determine if it is relevant to the topics: {topics}
+FILTER_PROMPT = """You decide whether a blog post is substantively about any of these topics: {topics}
+
+A post is substantively about a topic only if the topic is a primary subject — not a tangential mention, analogy, or "could also apply to" remark.
 
 Title: {title}
 Categories: {categories}
 Excerpt: {excerpt}
 
-Respond with only "YES" or "NO"."""
+Respond with ONLY a comma-separated list of matching topics from {topics}, using their exact spelling. If none match, respond with exactly: NONE"""
 
 
 class SummarizerAgent(BaseAgent):
@@ -86,22 +88,20 @@ class SummarizerAgent(BaseAgent):
                 bullets.append(line[2:].strip())
         return bullets
 
-    async def is_relevant(self, post: Post, topics: list[str]) -> bool:
+    async def match_topics(self, post: Post, topics: list[str]) -> list[str]:
         """
-        Check if a post is relevant to the given topics.
+        Return the subset of `topics` that the post is substantively about.
 
-        Uses Claude Haiku for cheap, fast filtering.
+        Uses keyword matching first (title/categories only — the excerpt is
+        too noisy for substring matching), then falls back to Claude Haiku
+        for ambiguous cases. Fails closed: on LLM error, returns [].
         """
-        # First, try simple keyword matching
-        topics_lower = [t.lower() for t in topics]
-        searchable = f"{post.title} {' '.join(post.categories)} {post.excerpt}".lower()
+        searchable = f"{post.title} {' '.join(post.categories)}".lower()
+        keyword_matches = [t for t in topics if t.lower() in searchable]
+        if keyword_matches:
+            logger.debug(f"Keyword match {keyword_matches} in: {post.title}")
+            return keyword_matches
 
-        for topic in topics_lower:
-            if topic in searchable:
-                logger.debug(f"Keyword match for '{topic}' in: {post.title}")
-                return True
-
-        # If no keyword match, use LLM for ambiguous cases
         logger.debug(f"No keyword match, using LLM filter for: {post.title}")
 
         prompt = FILTER_PROMPT.format(
@@ -114,20 +114,32 @@ class SummarizerAgent(BaseAgent):
         try:
             response = self.client.messages.create(
                 model=self.settings.filter_model,
-                max_tokens=10,
+                max_tokens=100,
                 messages=[{"role": "user", "content": prompt}],
             )
-            answer = response.content[0].text.strip().upper()
-            return answer == "YES"
+            answer = response.content[0].text.strip()
         except Exception as e:
-            logger.warning(f"LLM filter failed, including post: {e}")
-            return True  # Include on error to avoid missing relevant posts
+            logger.error(f"LLM filter failed, skipping post '{post.title}': {e}")
+            return []
 
-    async def summarize(self, post: Post, topics: list[str]) -> Summary:
+        if answer.upper() == "NONE":
+            return []
+
+        topics_by_lower = {t.lower(): t for t in topics}
+        matched: list[str] = []
+        for raw in answer.split(","):
+            key = raw.strip().lower()
+            if key in topics_by_lower and topics_by_lower[key] not in matched:
+                matched.append(topics_by_lower[key])
+        return matched
+
+    async def summarize(self, post: Post, matched_topics: list[str]) -> Summary:
         """
         Generate a detailed summary for a post.
 
-        Uses Claude Sonnet for quality output.
+        `matched_topics` is the subset of user topics the post is actually
+        about — used both to focus the prompt and to populate
+        `Summary.topics_matched` in the rendered output.
         """
         logger.info(f"Summarizing: {post.title}")
 
@@ -141,7 +153,7 @@ class SummarizerAgent(BaseAgent):
             title=post.title,
             date=post.published.strftime("%Y-%m-%d"),
             categories=", ".join(post.categories) or "None",
-            topics=", ".join(topics),
+            topics=", ".join(matched_topics),
             content=content,
         )
 
@@ -165,7 +177,7 @@ class SummarizerAgent(BaseAgent):
                 action_items=self._extract_bullets(
                     self._extract_section(summary_text, "Action Items")
                 ),
-                topics_matched=topics,
+                topics_matched=matched_topics,
             )
 
         except Exception as e:
@@ -175,7 +187,7 @@ class SummarizerAgent(BaseAgent):
                 post=post,
                 tldr=f"[Summary generation failed: {e}]",
                 key_takeaways=[],
-                topics_matched=topics,
+                topics_matched=matched_topics,
             )
 
     async def run(
@@ -199,23 +211,23 @@ class SummarizerAgent(BaseAgent):
             logger.info("No posts to summarize")
             return []
 
-        # Filter by relevance
+        # Filter by relevance; track which topics matched for each kept post.
+        relevant: list[tuple[Post, list[str]]] = []
         if skip_filter:
-            relevant_posts = posts
+            relevant = [(post, topics) for post in posts]
         else:
-            relevant_posts = []
             for post in posts:
-                if await self.is_relevant(post, topics):
-                    relevant_posts.append(post)
+                matched = await self.match_topics(post, topics)
+                if matched:
+                    relevant.append((post, matched))
                 else:
                     logger.info(f"Filtered out (not relevant): {post.title}")
 
-        logger.info(f"Processing {len(relevant_posts)}/{len(posts)} relevant posts")
+        logger.info(f"Processing {len(relevant)}/{len(posts)} relevant posts")
 
-        # Generate summaries
         summaries = []
-        for post in relevant_posts:
-            summary = await self.summarize(post, topics)
+        for post, matched in relevant:
+            summary = await self.summarize(post, matched)
             summaries.append(summary)
 
         return summaries

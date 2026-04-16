@@ -71,6 +71,6 @@ Set `ANTHROPIC_API_KEY` in your environment or in a `.env` file. See [.env.examp
 
 Override models via environment variables:
 ```bash
-export TLDROP_SUMMARIZER_MODEL=claude-sonnet-4-20250514
-export TLDROP_FILTER_MODEL=claude-haiku-4-20250514
+export TLDROP_SUMMARIZER_MODEL=claude-sonnet-4-6
+export TLDROP_FILTER_MODEL=claude-haiku-4-5-20251001
 ```

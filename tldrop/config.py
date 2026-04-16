@@ -41,8 +41,8 @@ class Settings(BaseSettings):
     user_agent: str = "tldrop/0.1 (personal blog monitor)"
 
     # LLM configuration
-    summarizer_model: str = "claude-sonnet-4-20250514"
-    filter_model: str = "claude-haiku-4-20250514"
+    summarizer_model: str = "claude-sonnet-4-6"
+    filter_model: str = "claude-haiku-4-5-20251001"
 
     @field_validator("site")
     @classmethod
