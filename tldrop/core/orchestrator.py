@@ -123,21 +123,30 @@ class Orchestrator:
             # Phase 3: Output
             output_agent = OutputAgent(self.settings)
 
+            write_results: list[tuple[Summary, list[Path]]] = []
             try:
-                paths = await output_agent.run(
+                write_results = await output_agent.run(
                     summaries,
                     formats=formats,
                     git_push=git_push,
                 )
-                result.files_written = paths
+                result.files_written = [p for _, paths in write_results for p in paths]
             except Exception as e:
                 logger.error(f"Output failed: {e}")
                 result.errors.append(f"Output failed: {e}")
-                # Don't return - we still want to update state
 
-            # Update state
-            for summary in summaries:
-                self.state_manager.mark_processed(summary.post.url)
+            # Mark processed only for summaries whose output was actually written.
+            # Otherwise a write failure would hide the post from future runs forever.
+            failed = 0
+            for summary, paths in write_results:
+                if paths:
+                    self.state_manager.mark_processed(summary.post.url)
+                else:
+                    failed += 1
+            if failed:
+                msg = f"{failed} summary(ies) not written — will retry next run"
+                logger.warning(msg)
+                result.errors.append(msg)
             self.state_manager.set_last_run()
             self.state_manager.save()
 

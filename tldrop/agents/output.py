@@ -148,31 +148,33 @@ class OutputAgent(BaseAgent):
         summaries: list[Summary],
         formats: list[str] | None = None,
         git_push: bool = False,
-    ) -> list[Path]:
+    ) -> list[tuple[Summary, list[Path]]]:
         """
         Write all summaries to files and optionally push to git.
 
-        Args:
-            summaries: List of summaries to output
-            formats: Output formats (default: ["md"])
-            git_push: Whether to commit and push to git
-
-        Returns:
-            List of paths to written files
+        Returns a list of (summary, paths) pairs. `paths` is empty if that
+        summary's write failed — the caller uses this to avoid marking a
+        post as processed when it was never actually written to disk.
         """
         if formats is None:
             formats = ["md"]
 
-        all_paths = []
+        results: list[tuple[Summary, list[Path]]] = []
 
         for summary in summaries:
-            paths = self.write_file(summary, formats)
-            all_paths.extend(paths)
+            try:
+                paths = self.write_file(summary, formats)
+                results.append((summary, paths))
+            except Exception as e:
+                logger.error(f"Failed to write output for '{summary.post.title}': {e}")
+                results.append((summary, []))
+
+        all_paths = [p for _, paths in results for p in paths]
 
         if git_push and all_paths:
-            post_count = len(summaries)
+            post_count = sum(1 for _, paths in results if paths)
             message = f"tldrop: Add {post_count} summary{'s' if post_count != 1 else ''}"
             if self.git_commit(all_paths, message):
                 self.git_push()
 
-        return all_paths
+        return results
